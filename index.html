@@ -73,6 +73,7 @@
                 <h1 class="text-xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
                      ONE WEEK ONE JUZ
                 </h1>
+                <h2 class="text-sm text-slate-500">Mengenali isi Al Qur'an dengan ringan</h2>
                 <div class="mt-1 flex flex-col">
                     <span class="text-sm font-semibold text-slate-600">{{ hijriDate }}</span>
                     <span class="text-xs text-slate-400">Pekan ke-{{ currentWeekNum }} • {{ currentMonthName }}</span>
@@ -246,6 +247,26 @@
                 </div>
             </div>
         </div>
+        <!-- ===== TADABBUR HARI INI ===== -->
+        <div v-if="tadabburToday" class="mb-6">
+            <button @click="showTadabburModal = true"
+                class="w-full bg-white border border-amber-200 rounded-xl card-shadow p-4 flex items-center justify-between hover:bg-amber-50 transition group text-left">
+                <div class="flex items-center gap-4">
+                    <div class="bg-amber-100 p-3 rounded-full text-amber-600 text-xl flex-shrink-0">
+                        <i class="ph-fill ph-book-open-text"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-amber-500 uppercase tracking-wider">Tadabbur Hari Ini</p>
+                        <p class="text-base font-bold text-slate-800 mt-0.5">{{ tadabburToday.user.name }}</p>
+                        <p class="text-xs text-slate-400 mt-0.5">Giliran mengirimkan hasil tadabbur</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 text-amber-500 group-hover:translate-x-1 transition-transform">
+                    <span class="text-xs font-medium hidden sm:inline">Lihat 6 hari</span>
+                    <i class="ph-bold ph-caret-right text-lg"></i>
+                </div>
+            </button>
+        </div>
 
         <!-- ===== GRID JUZ ===== -->
         <div class="juz-grid">
@@ -283,6 +304,54 @@
                             </label>
                         </li>
                     </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== MODAL JADWAL TADABBUR ===== -->
+        <div v-if="showTadabburModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-amber-50">
+                    <div>
+                        <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                            <i class="ph-fill ph-book-open-text text-amber-500"></i>
+                            Jadwal Tadabbur
+                        </h3>
+                        <p class="text-xs text-slate-400 mt-0.5">6 hari ke depan · bergilir per peserta</p>
+                    </div>
+                    <button @click="showTadabburModal = false" class="text-slate-400 hover:text-red-500">
+                        <i class="ph-bold ph-x"></i>
+                    </button>
+                </div>
+                <div class="p-4 space-y-2">
+                    <div v-for="(item, index) in tadabburSchedule" :key="item.date"
+                        class="flex items-center gap-4 p-3 rounded-lg border transition"
+                        :class="item.isToday
+                            ? 'bg-amber-50 border-amber-200'
+                            : 'bg-white border-slate-100'">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full flex flex-col items-center justify-center text-center"
+                            :class="item.isToday ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500'">
+                            <span class="text-xs font-bold leading-none">
+                                {{ new Date(item.date + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric' }) }}
+                            </span>
+                            <span class="text-[10px] leading-none mt-0.5">
+                                {{ new Date(item.date + 'T00:00:00').toLocaleDateString('id-ID', { month: 'short' }) }}
+                            </span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-semibold text-slate-800 truncate">{{ item.user.name }}</p>
+                            <p class="text-xs text-slate-400">
+                                {{ new Date(item.date + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long' }) }}
+                                <span v-if="item.isToday" class="ml-1 font-bold text-amber-500">· Hari ini</span>
+                            </p>
+                        </div>
+                        <div v-if="item.isToday" class="flex-shrink-0">
+                            <span class="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-1 rounded-full">Giliran</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 bg-slate-50 text-center text-xs text-slate-400 border-t border-slate-100">
+                    Urutan berdasarkan waktu peserta didaftarkan · berputar setiap {{ users.length }} hari
                 </div>
             </div>
         </div>
