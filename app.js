@@ -143,6 +143,33 @@ createApp({
                     selesai: !!completions.value[getCompletionKey(u.id)]
                 }));
         });
+        // --- Jadwal Tadabbur Harian ---
+
+        const tadabburSchedule = computed(() => {
+            if (users.value.length === 0) return [];
+            const sorted = [...users.value].sort((a, b) => a.id - b.id);
+            const total = sorted.length;
+            const base  = parseLocalDate(startDate.value);
+            const today = parseLocalDate(viewDate.value);
+            const diffDays = Math.floor((today - base) / (1000 * 60 * 60 * 24));
+
+            const schedule = [];
+            for (let i = 0; i < 6; i++) {
+                const dayOffset  = diffDays + i;
+                const userIndex  = ((dayOffset % total) + total) % total;
+                const targetDate = new Date(base);
+                targetDate.setDate(base.getDate() + dayOffset);
+                schedule.push({
+                    user: sorted[userIndex],
+                    date: targetDate.toISOString().split('T')[0],
+                    isToday: i === 0
+                });
+            }
+            return schedule;
+        });
+
+        const tadabburToday = computed(() => tadabburSchedule.value[0] ?? null);
+        const showTadabburModal = ref(false);
 
         // --- Statistik Bulanan & Khatam ---
 
@@ -343,7 +370,7 @@ const loadData = async () => {
             toggleJuz, toggleAdmin, verifyAdmin,
             addUser, deleteUser, getUsersForJuz,
             isCompleted, toggleCompletion, copyRecap,
-            updateStartDate, getJuzClass,
+            updateStartDate, getJuzClass, tadabburToday, tadabburSchedule, showTadabburModal,
             monthlyStats, hijriDate, currentMonthName, monthlyKhatamCount,
             weekSummary, searchQuery, searchResults, getCurrentJuzForUser
         };
