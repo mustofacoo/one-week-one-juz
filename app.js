@@ -16,7 +16,7 @@ createApp({
         };
 
         // --- Konfigurasi ---
-        const ADMIN_PASSWORD = "123";
+        const ADMIN_PASSWORD = "pekanqu";
 
         // --- State Utama ---
         const users       = ref([]);
@@ -27,6 +27,23 @@ createApp({
         // Loading state — dipakai untuk disable tombol & tampilkan spinner
         const isLoading   = ref(false);
         const isSyncing   = ref(false); // indikator sync ringan (toggle checkbox, dll)
+
+        // --- Motivasi Harian ---
+        const motivasiHarian = ref("");
+
+        const loadMotivasiHarian = async () => {
+            try {
+                const res  = await fetch('./motivasi.json');
+                const list = await res.json();
+                // Gunakan tanggal sebagai seed agar konsisten seharian
+                const today     = new Date();
+                const seed      = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+                const idx       = seed % list.length;
+                motivasiHarian.value = list[idx];
+            } catch (e) {
+                console.warn("Gagal memuat motivasi.json:", e);
+            }
+        };
 
         // UI State
         const showAdmin           = ref(false);
@@ -360,7 +377,10 @@ const loadData = async () => {
             navigator.clipboard.writeText(text).then(() => alert("Rekap disalin!"));
         };
 
-        onMounted(() => loadData());
+        onMounted(() => {
+            loadData();
+            loadMotivasiHarian();
+        });
 
         return {
             users, startDate, viewDate, currentWeekNum,
@@ -372,7 +392,8 @@ const loadData = async () => {
             isCompleted, toggleCompletion, copyRecap,
             updateStartDate, getJuzClass, tadabburToday, tadabburSchedule, showTadabburModal,
             monthlyStats, hijriDate, currentMonthName, monthlyKhatamCount,
-            weekSummary, searchQuery, searchResults, getCurrentJuzForUser
+            weekSummary, searchQuery, searchResults, getCurrentJuzForUser,
+            motivasiHarian
         };
     }
 }).mount('#app');
