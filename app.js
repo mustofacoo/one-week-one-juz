@@ -358,8 +358,8 @@ const loadData = async () => {
 };
 
         const copyRecap = () => {
-            let text = `*LAPORAN OWOJ PEKAN KE-${currentWeekNum.value}*\n`;
-            text += `🗓 ${hijriDate.value}\n\n`;
+            let text = `*LAPORAN OWOJ+ BACA ARTI PEKAN KE-${currentWeekNum.value}*\n`;
+            text += ` ${hijriDate.value}\n\n`;
             let totalSelesai = 0;
             for (let j = 1; j <= 30; j++) {
                 const readers = getUsersForJuz(j);
@@ -368,13 +368,13 @@ const loadData = async () => {
                     readers.forEach(u => {
                         const done = isCompleted(u.id);
                         if (done) totalSelesai++;
-                        text += `- ${u.name} : ${done ? "✅" : "⏳"}\n`;
+                        text += `- ${u.name} : ${done ? "Alhamdulillah selesai" : "Belum laporan selesai"}\n`;
                     });
                     text += `\n`;
                 }
             }
-            text += `📊 Progress: ${totalSelesai}/${users.value.length} Peserta.\nKeep Istiqomah!`;
-            navigator.clipboard.writeText(text).then(() => alert("Rekap disalin!"));
+            text += ` Progress: ${totalSelesai}/${users.value.length} Peserta.\nKeep Istiqomah!`;
+            navigator.clipboard.writeText(text).then(() => alert("sip!!"));
         };
 
         onMounted(() => {
