@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OWOJ Dashboard</title>
+    <title>Tuntas ayat dan arti Qur'an</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -70,8 +70,8 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             
             <div>
-                <h1 class="text-xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-                     ONE WEEK ONE JUZ
+                <h1 @dblclick="copyRecap" class="text-xl font-bold text-slate-800 tracking-tight flex items-center gap-2 cursor-pointer select-none" title="Klik 2x untuk copy rekap">
+                    ONE WEEK ONE JUZ
                 </h1>
                 <h2 class="text-sm text-slate-500">Mengenali isi Al Qur'an dengan ringan</h2>
 
@@ -87,9 +87,7 @@
                     <button @click="showStatsModal = true" class="bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
                         <i class="ph ph-chart-bar text-lg"></i> <span class="hidden sm:inline">Statistik</span>
                     </button>
-                    <button @click="copyRecap" class="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
-                        <i class="ph ph-whatsapp-logo text-lg"></i> <span class="hidden sm:inline">Rekap</span>
-                    </button>
+
                     <button @click="toggleAdmin" class="bg-slate-100 text-slate-600 hover:bg-slate-200 px-3 py-2 rounded-lg text-sm font-medium transition">
                         <i class="ph ph-gear text-lg"></i>
                     </button>
