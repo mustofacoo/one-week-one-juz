@@ -19,10 +19,15 @@ createApp({
         const ADMIN_PASSWORD = "pekanqu";
 
         // --- State Utama ---
+        const getTodayLocal = () => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    };
         const users       = ref([]);
         const completions = ref({});
-        const startDate   = ref(new Date().toISOString().split('T')[0]);
-        const viewDate    = ref(new Date().toISOString().split('T')[0]);
+        const startDate = ref(getTodayLocal());
+
+const viewDate = ref(getTodayLocal());
 
         // Loading state — dipakai untuk disable tombol & tampilkan spinner
         const isLoading   = ref(false);
@@ -162,28 +167,41 @@ createApp({
         });
         // --- Jadwal Tadabbur Harian ---
 
-        const tadabburSchedule = computed(() => {
-            if (users.value.length === 0) return [];
-            const sorted = [...users.value].sort((a, b) => a.id - b.id);
-            const total = sorted.length;
-            const base  = parseLocalDate(startDate.value);
-            const today = parseLocalDate(viewDate.value);
-            const diffDays = Math.floor((today - base) / (1000 * 60 * 60 * 24));
+ // --- Jadwal Tadabbur Harian (VERSI PERBAIKAN) ---
+const tadabburSchedule = computed(() => {
+    if (users.value.length === 0) return [];
+    
+    // Urutkan berdasarkan ID agar konsisten
+    const sorted = [...users.value].sort((a, b) => a.id - b.id);
+    const total = sorted.length;
+    
+    const base = parseLocalDate(startDate.value);
+    const today = parseLocalDate(viewDate.value);
 
-            const schedule = [];
-            for (let i = 0; i < 6; i++) {
-                const dayOffset  = diffDays + i;
-                const userIndex  = ((dayOffset % total) + total) % total;
-                const targetDate = new Date(base);
-                targetDate.setDate(base.getDate() + dayOffset);
-                schedule.push({
-                    user: sorted[userIndex],
-                    date: targetDate.toISOString().split('T')[0],
-                    isToday: i === 0
-                });
-            }
-            return schedule;
+    // Pastikan jamnya sama agar perhitungan selisih hari akurat
+    base.setHours(12, 0, 0, 0);
+    today.setHours(12, 0, 0, 0);
+
+    // Gunakan Math.round untuk menghindari pembulatan ke bawah yang salah (misal 18.99 jadi 18)
+    const diffDays = Math.round((today - base) / (1000 * 60 * 60 * 24));
+
+    const schedule = [];
+    for (let i = 0; i < 6; i++) {
+        const dayOffset = diffDays + i;
+        const userIndex = ((dayOffset % total) + total) % total;
+        
+        // Buat objek tanggal baru untuk setiap baris jadwal
+        const targetDate = new Date(base);
+        targetDate.setDate(base.getDate() + dayOffset);
+        
+        schedule.push({
+            user: sorted[userIndex],
+            date: targetDate.toISOString().split('T')[0],
+            isToday: i === 0
         });
+    }
+    return schedule;
+});
 
         const tadabburToday = computed(() => tadabburSchedule.value[0] ?? null);
         const showTadabburModal = ref(false);
