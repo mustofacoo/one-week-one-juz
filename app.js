@@ -55,6 +55,7 @@ const viewDate = ref(getTodayLocal());
         const isAdminAuthenticated = ref(false);
         const adminPasswordInput  = ref("");
         const showStatsModal      = ref(false);
+        const statsTab            = ref('pekan'); // tab aktif di modal statistik
         const openJuz             = ref(null);
         const searchQuery         = ref("");
 
@@ -172,7 +173,7 @@ const tadabburSchedule = computed(() => {
     if (users.value.length === 0) return [];
     
     // Urutkan berdasarkan ID agar konsisten
-    const sorted = [...users.value].sort((a, b) => a.id - b.id);
+    const sorted = [...users.value].sort((a, b) => (a.rotationOrder ?? a.id) - (b.rotationOrder ?? b.id));
     const total = sorted.length;
     
     const base = parseLocalDate(startDate.value);
@@ -251,6 +252,34 @@ const tadabburSchedule = computed(() => {
                 .sort((a, b) => b.count - a.count);
         });
 
+        // Ganti/tambahkan setelah definisi monthlyStats (sekitar baris 252)
+
+// Statistik PEKAN INI: siapa yang sudah selesai pekan ini
+const weekStats = computed(() => {
+    const wIdx = currentWeekIndex.value;
+    return users.value
+        .map(user => ({
+            ...user,
+            selesai: !!completions.value[`week${wIdx}_user${user.id}`],
+            juzPekanIni: getCurrentJuzForUser(user.startJuz)
+        }))
+        .sort((a, b) => (b.selesai ? 1 : 0) - (a.selesai ? 1 : 0) || a.name.localeCompare(b.name));
+});
+
+// Statistik TOTAL: hitung semua week dari 0 sampai currentWeekIndex
+const totalStats = computed(() => {
+    const maxWeek = currentWeekIndex.value;
+    return users.value
+        .map(user => {
+            let totalJuz = 0;
+            for (let w = 0; w <= maxWeek; w++) {
+                if (completions.value[`week${w}_user${user.id}`]) totalJuz++;
+            }
+            return { name: user.name, totalJuz, maxPossible: maxWeek + 1 };
+        })
+        .sort((a, b) => b.totalJuz - a.totalJuz);
+});
+
         // --- Actions ---
 
         // ✅ DIUBAH: toggle completion → sync ke Supabase
@@ -306,11 +335,15 @@ const tadabburSchedule = computed(() => {
             const juzDiinginkan    = parseInt(newUser.value.startJuz);
             const weekNow          = currentWeekIndex.value;
             const startJuzTerhitung = ((juzDiinginkan - weekNow - 1) % 30 + 30) % 30 + 1;
-            const id               = Date.now();
+            const id = Date.now();
+            // Urutan rotasi = posisi terakhir + 1, agar peserta baru masuk di akhir antrian
+            const rotationOrder = users.value.length > 0
+                ? Math.max(...users.value.map(u => u.rotationOrder ?? 0)) + 1
+                : 0;
 
             isLoading.value = true;
             try {
-                const saved = await insertUser({ id, name: namaTrim, startJuz: startJuzTerhitung });
+                const saved = await insertUser({ id, name: namaTrim, startJuz: startJuzTerhitung, rotationOrder });
                 users.value.push(saved);
                 newUser.value = { name: "", startJuz: "" };
             } catch (e) {
@@ -375,23 +408,46 @@ const loadData = async () => {
     }
 };
 
-        const copyRecap = () => {
-            let text = `*LAPORAN OWOJ+ BACA ARTI PEKAN KE-${currentWeekNum.value}*\n`;
-            text += ` ${hijriDate.value}\n\n`;
-            let totalSelesai = 0;
+const copyRecap = () => {
+            const sudahSelesai = [];
+            const belumSelesai = [];
+ 
             for (let j = 1; j <= 30; j++) {
                 const readers = getUsersForJuz(j);
-                if (readers.length > 0) {
-                    text += `*Juz ${j}*\n`;
-                    readers.forEach(u => {
-                        const done = isCompleted(u.id);
-                        if (done) totalSelesai++;
-                        text += `- ${u.name} : ${done ? "Alhamdulillah selesai" : "Belum laporan selesai"}\n`;
-                    });
-                    text += `\n`;
-                }
+                readers.forEach(u => {
+                    const done = isCompleted(u.id);
+                    const entry = { name: u.name, juz: j, done };
+                    if (done) sudahSelesai.push(entry);
+                    else belumSelesai.push(entry);
+                });
             }
-            text += ` Progress: ${totalSelesai}/${users.value.length} Peserta.\nKeep Istiqomah!`;
+ 
+            let text = `*LAPORAN OWOJ+ BACA ARTI*\n`;
+            text += `*Pekan ke-${currentWeekNum.value}* | ${hijriDate.value}\n`;
+            text += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+ 
+            text += `*SUDAH LAPORAN* (${sudahSelesai.length} peserta)\n`;
+            if (sudahSelesai.length === 0) {
+                text += `_Belum ada yang laporan_\n`;
+            } else {
+                sudahSelesai.forEach(e => {
+                    text += `- ${e.name} _(Juz ${e.juz})_\n`;
+                });
+            }
+ 
+            text += `\n*BELUM LAPORAN* (${belumSelesai.length} peserta)\n`;
+            if (belumSelesai.length === 0) {
+                text += `_Semua sudah selesai, Alhamdulillah!_\n`;
+            } else {
+                belumSelesai.forEach(e => {
+                    text += `- ${e.name} _(Juz ${e.juz})_\n`;
+                });
+            }
+ 
+            text += `\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+            text += `Alhamdulillah, pekan ini *${sudahSelesai.length} dari ${users.value.length} peserta* tuntas\n`;
+            text += `Allahummarhamnaa bil Quraan, semoga istiqomah!`;
+ 
             navigator.clipboard.writeText(text).then(() => alert("sip!!"));
         };
 
@@ -403,8 +459,8 @@ const loadData = async () => {
         return {
             users, startDate, viewDate, currentWeekNum,
             showAdmin, isAdminAuthenticated, adminPasswordInput,
-            openJuz, newUser, startDateInput, showStatsModal,
-            isLoading, isSyncing,
+            openJuz, newUser, startDateInput, showStatsModal, statsTab,
+            isLoading, isSyncing, weekStats, totalStats,
             toggleJuz, toggleAdmin, verifyAdmin,
             addUser, deleteUser, getUsersForJuz,
             isCompleted, toggleCompletion, copyRecap,
