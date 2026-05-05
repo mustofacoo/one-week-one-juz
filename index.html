@@ -18,6 +18,8 @@
         <link rel="apple-touch-icon" href="icon-180x180.png">
 
     <style>
+
+        
         body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
         .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); }
         .juz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
@@ -125,21 +127,20 @@
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                 <!-- Kartu: Tanggal Hijriah -->
                 <div class="bg-white rounded-xl border border-slate-200 card-shadow p-4">
-                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Tanggal</p>
-                    <p class="text-base font-bold text-slate-800 leading-snug">{{ hijriDate }}</p>
                     <p class="text-xs text-slate-400 mt-1">{{ currentMonthName }}</p>
+                    <p class="text-base font-bold text-slate-800 leading-snug">{{ hijriDate }}</p>
+                    
                 </div>
                 <!-- Kartu: Pekan -->
                 <div class="bg-white rounded-xl border border-slate-200 card-shadow p-4">
-                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Pekan</p>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Pekan ke-</p>
                     <p class="text-2xl font-bold text-emerald-600">{{ currentWeekNum }}</p>
-                    <p class="text-xs text-slate-400 mt-1">pekan berjalan</p>
                 </div>
                 <!-- Kartu: Peserta Aktif -->
                 <div class="bg-white rounded-xl border border-slate-200 card-shadow p-4">
                     <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Peserta</p>
                     <p class="text-2xl font-bold text-slate-800">{{ weekSummary.totalPeserta }}</p>
-                    <p class="text-xs text-slate-400 mt-1">orang terdaftar</p>
+    
                 </div>
                 <!-- Kartu: Progress (selesai + progress bar) -->
                 <div class="bg-white rounded-xl border border-slate-200 card-shadow p-4">
@@ -147,12 +148,6 @@
                     <p class="text-2xl font-bold" :class="weekSummary.percent === 100 ? 'text-emerald-600' : 'text-amber-500'">
                         {{ weekSummary.sudahSelesai }}<span class="text-base font-normal text-slate-400">/{{ weekSummary.totalPeserta }}</span>
                     </p>
-                    <div class="mt-2 w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div class="h-full rounded-full transition-all duration-500"
-                             :class="weekSummary.percent === 100 ? 'bg-emerald-500' : 'bg-amber-400'"
-                             :style="{ width: weekSummary.percent + '%' }"></div>
-                    </div>
-                    <p class="text-xs mt-1" :class="weekSummary.percent === 100 ? 'text-emerald-500' : 'text-slate-400'">{{ weekSummary.percent }}% tuntas</p>
                 </div>
             </div>
         </div>
@@ -368,30 +363,88 @@
         <div v-if="showStatsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
             <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
                 <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                    <h3 class="font-bold text-slate-700">Statistik {{ currentMonthName }}</h3>
+                    <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                        <i class="ph-fill ph-chart-bar text-emerald-500"></i> Statistik Peserta
+                    </h3>
                     <button @click="showStatsModal = false" class="text-slate-400 hover:text-red-500"><i class="ph-bold ph-x"></i></button>
                 </div>
-                <div class="p-4 max-h-[60vh] overflow-y-auto">
+
+                <!-- Tab switcher (Vue reactive) -->
+                <div class="flex border-b border-slate-100">
+                    <button @click="statsTab = 'pekan'"
+                        class="flex-1 py-2.5 text-sm font-semibold transition"
+                        :class="statsTab === 'pekan'
+                            ? 'border-b-2 border-emerald-500 text-emerald-600'
+                            : 'border-b-2 border-transparent text-slate-400 hover:text-slate-600'">
+                        Pekan Ini
+                    </button>
+                    <button @click="statsTab = 'total'"
+                        class="flex-1 py-2.5 text-sm font-semibold transition"
+                        :class="statsTab === 'total'
+                            ? 'border-b-2 border-emerald-500 text-emerald-600'
+                            : 'border-b-2 border-transparent text-slate-400 hover:text-slate-600'">
+                         Total juz terbaca
+                    </button>
+                </div>
+
+                <!-- Tab: Pekan Ini -->
+                <div v-if="statsTab === 'pekan'" class="p-4 max-h-[60vh] overflow-y-auto">
                     <div class="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase mb-3 px-2">
-                        <span>Nama Peserta</span><span>Juz Selesai</span>
+                        <span>Peserta</span><span>Status Pekan {{ currentWeekNum }}</span>
                     </div>
                     <ul class="space-y-2">
-                        <li v-for="(stat, index) in monthlyStats" :key="index"
-                            class="flex justify-between items-center p-3 rounded-lg border border-slate-100"
-                            :class="index < 3 ? 'bg-green-50/50' : 'bg-white'">
+                        <li v-for="(stat, index) in weekStats" :key="stat.id"
+                            class="flex justify-between items-center p-3 rounded-lg border"
+                            :class="stat.selesai ? 'bg-emerald-50 border-emerald-100' : 'bg-white border-slate-100'">
                             <div class="flex items-center gap-3">
-                                <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
-                                      :class="index === 0 ? 'bg-yellow-100 text-yellow-700' : (index === 1 ? 'bg-slate-200 text-slate-600' : (index === 2 ? 'bg-orange-100 text-orange-700' : 'bg-slate-50 text-slate-400'))">
+                                <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-slate-100 text-slate-500">
                                     {{ index + 1 }}
                                 </span>
-                                <span class="text-slate-700 font-medium">{{ stat.name }}</span>
+                                <div>
+                                    <span class="text-slate-700 font-medium text-sm">{{ stat.name }}</span>
+                                    <p class="text-xs text-slate-400">Juz {{ stat.juzPekanIni }}</p>
+                                </div>
                             </div>
-                            <span class="font-bold text-green-600 bg-green-50 px-2 py-1 rounded text-sm">{{ stat.count }} Juz</span>
+                            <span class="text-xs font-bold px-2.5 py-1 rounded-full"
+                                :class="stat.selesai ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-50 text-amber-600'">
+                                {{ stat.selesai ? 'Alhamdulilah selesai' : 'Belum Laporan' }}
+                            </span>
                         </li>
                     </ul>
                 </div>
-                <div class="p-4 bg-slate-50 text-center text-xs text-slate-400 border-t border-slate-100">
-                    Data diambil berdasarkan bulan yang Anda pilih di filter tanggal.
+
+                <!-- Tab: Total Akumulasi -->
+                <div v-if="statsTab === 'total'" class="p-4 max-h-[60vh] overflow-y-auto">
+                    <div class="mb-3 px-2 flex items-center justify-between">
+                        <div class="text-xs font-semibold text-slate-400 uppercase">Peserta</div>
+                        <div class="text-xs font-semibold text-slate-400 uppercase">Total Juz</div>
+                    </div>
+                    <ul class="space-y-2">
+                        <li v-for="(stat, index) in totalStats" :key="stat.name"
+                            class="flex justify-between items-center p-3 rounded-lg border border-slate-100"
+                            :class="index < 3 ? 'bg-amber-50/60' : 'bg-white'">
+                            <div class="flex items-center gap-3">
+                                <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                                    :class="index === 0 ? 'bg-yellow-100 text-yellow-700' : (index === 1 ? 'bg-slate-200 text-slate-600' : (index === 2 ? 'bg-orange-100 text-orange-700' : 'bg-slate-50 text-slate-400'))">
+                                    {{ index + 1 }}
+                                </span>
+                                <span class="text-slate-700 font-medium text-sm">{{ stat.name }}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="h-full bg-emerald-400 rounded-full"
+                                        :style="{ width: Math.min((stat.totalJuz / stat.maxPossible) * 100, 100) + '%' }"></div>
+                                </div>
+                                <span class="font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded text-sm min-w-[60px] text-center">
+                                    {{ stat.totalJuz }}<span class="text-xs text-slate-400 font-normal">/{{ stat.maxPossible }}</span>
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="p-3 bg-slate-50 text-center text-xs text-slate-400 border-t border-slate-100">
+                    Total akumulasi dihitung sejak pekan pertama program dimulai.
                 </div>
             </div>
         </div>
@@ -399,7 +452,6 @@
     </main>
 </div>
 
-<!-- ✅ DIUBAH: type="module" agar bisa pakai import/export di app.js -->
 <script type="module" src="app.js"></script>
 
 </body>
