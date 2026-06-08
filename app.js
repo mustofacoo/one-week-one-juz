@@ -169,37 +169,62 @@ const viewDate = ref(getTodayLocal());
         // --- Jadwal Tadabbur Harian ---
 
  // --- Jadwal Tadabbur Harian (VERSI PERBAIKAN) ---
+// --- Jadwal Tadabbur Harian (Senin–Sabtu, Minggu libur) ---
+
+// Helper: hitung berapa "hari aktif" (non-Minggu) dari startDate sampai suatu tanggal
+const countActiveDays = (fromDate, toDate) => {
+    let count = 0;
+    const cursor = new Date(fromDate);
+    cursor.setHours(12, 0, 0, 0);
+    const target = new Date(toDate);
+    target.setHours(12, 0, 0, 0);
+    while (cursor < target) {
+        cursor.setDate(cursor.getDate() + 1);
+        if (cursor.getDay() !== 0) count++; // 0 = Minggu
+    }
+    return count;
+};
+
 const tadabburSchedule = computed(() => {
     if (users.value.length === 0) return [];
-    
-    // Urutkan berdasarkan ID agar konsisten
+
     const sorted = [...users.value].sort((a, b) => (a.rotationOrder ?? a.id) - (b.rotationOrder ?? b.id));
     const total = sorted.length;
-    
-    const base = parseLocalDate(startDate.value);
+
+    const base  = parseLocalDate(startDate.value);
     const today = parseLocalDate(viewDate.value);
 
-    // Pastikan jamnya sama agar perhitungan selisih hari akurat
-    base.setHours(12, 0, 0, 0);
-    today.setHours(12, 0, 0, 0);
-
-    // Gunakan Math.round untuk menghindari pembulatan ke bawah yang salah (misal 18.99 jadi 18)
-    const diffDays = Math.round((today - base) / (1000 * 60 * 60 * 24));
+    // Berapa hari aktif sudah berlalu sejak startDate sampai hari ini
+    const activeDaysSoFar = countActiveDays(base, today);
+    // Tambah 1 jika hari ini sendiri bukan Minggu (hari ini termasuk hitungan)
+    const todayIsActive = today.getDay() !== 0;
 
     const schedule = [];
-    for (let i = 0; i < 6; i++) {
-        const dayOffset = diffDays + i;
-        const userIndex = ((dayOffset % total) + total) % total;
-        
-        // Buat objek tanggal baru untuk setiap baris jadwal
-        const targetDate = new Date(base);
-        targetDate.setDate(base.getDate() + dayOffset);
-        
-        schedule.push({
-            user: sorted[userIndex],
-            date: targetDate.toISOString().split('T')[0],
-            isToday: i === 0
-        });
+    let activeDayIndex = todayIsActive ? activeDaysSoFar : null; // null = hari ini libur
+
+    for (let i = 0; i < 7; i++) {
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + i);
+        const isSunday = targetDate.getDay() === 0;
+
+        if (isSunday) {
+            schedule.push({
+                user: null,
+                date: targetDate.toISOString().split('T')[0],
+                isToday: i === 0,
+                isLibur: true
+            });
+        } else {
+            // Hitung index hari aktif untuk hari ini+i
+            const dayActiveDays = countActiveDays(base, targetDate);
+            const userIndex = ((dayActiveDays % total) + total) % total;
+            schedule.push({
+                user: sorted[userIndex],
+                date: targetDate.toISOString().split('T')[0],
+                isToday: i === 0,
+                isLibur: false
+            });
+        }
     }
     return schedule;
 });
