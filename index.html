@@ -252,7 +252,20 @@
         </div>
         <!-- ===== TADABBUR HARI INI ===== -->
         <div v-if="tadabburToday" class="mb-6">
-            <button @click="showTadabburModal = true"
+            <!-- Hari Minggu: tampilkan banner libur -->
+            <div v-if="tadabburToday.isLibur"
+                class="w-full bg-white border border-slate-200 rounded-xl card-shadow p-4 flex items-center gap-4">
+                <div class="bg-slate-100 p-3 rounded-full text-slate-400 text-xl flex-shrink-0">
+                    <i class="ph-fill ph-moon-stars"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tadabbur Hari Ini</p>
+                    <p class="text-base font-bold text-slate-600 mt-0.5">Libur — Rehat Hari Minggu</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Tadabbur dilanjutkan besok, Senin</p>
+                </div>
+            </div>
+            <!-- Hari aktif: tampilan normal -->
+            <button v-else @click="showTadabburModal = true"
                 class="w-full bg-white border border-amber-200 rounded-xl card-shadow p-4 flex items-center justify-between hover:bg-amber-50 transition group text-left">
                 <div class="flex items-center gap-4">
                     <div class="bg-amber-100 p-3 rounded-full text-amber-600 text-xl flex-shrink-0">
@@ -327,34 +340,44 @@
                     </button>
                 </div>
                 <div class="p-4 space-y-2">
-                    <div v-for="(item, index) in tadabburSchedule" :key="item.date"
-                        class="flex items-center gap-4 p-3 rounded-lg border transition"
-                        :class="item.isToday
+                <div v-for="(item, index) in tadabburSchedule" :key="item.date"
+                    class="flex items-center gap-4 p-3 rounded-lg border transition"
+                    :class="item.isLibur
+                        ? 'bg-slate-50 border-slate-100 opacity-60'
+                        : item.isToday
                             ? 'bg-amber-50 border-amber-200'
                             : 'bg-white border-slate-100'">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-full flex flex-col items-center justify-center text-center"
-                            :class="item.isToday ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500'">
-                            <span class="text-xs font-bold leading-none">
-                                {{ new Date(item.date + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric' }) }}
-                            </span>
-                            <span class="text-[10px] leading-none mt-0.5">
-                                {{ new Date(item.date + 'T00:00:00').toLocaleDateString('id-ID', { month: 'short' }) }}
-                            </span>
-                        </div>
-                        <div class="flex-1 min-w-0">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full flex flex-col items-center justify-center text-center"
+                        :class="item.isToday ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500'">
+                        <span class="text-xs font-bold leading-none">
+                            {{ new Date(item.date + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric' }) }}
+                        </span>
+                        <span class="text-[10px] leading-none mt-0.5">
+                            {{ new Date(item.date + 'T00:00:00').toLocaleDateString('id-ID', { month: 'short' }) }}
+                        </span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <!-- Baris Minggu -->
+                        <template v-if="item.isLibur">
+                            <p class="font-semibold text-slate-400 italic">Libur</p>
+                            <p class="text-xs text-slate-400">Minggu · Rehat</p>
+                        </template>
+                        <!-- Baris hari aktif -->
+                        <template v-else>
                             <p class="font-semibold text-slate-800 truncate">{{ item.user.name }}</p>
                             <p class="text-xs text-slate-400">
                                 {{ new Date(item.date + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long' }) }}
                                 <span v-if="item.isToday" class="ml-1 font-bold text-amber-500">· Hari ini</span>
                             </p>
-                        </div>
-                        <div v-if="item.isToday" class="flex-shrink-0">
-                            <span class="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-1 rounded-full">Giliran</span>
-                        </div>
+                        </template>
+                    </div>
+                    <div v-if="item.isToday && !item.isLibur" class="flex-shrink-0">
+                        <span class="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-1 rounded-full">Giliran</span>
                     </div>
                 </div>
+                </div>
                 <div class="p-4 bg-slate-50 text-center text-xs text-slate-400 border-t border-slate-100">
-                    Urutan berdasarkan waktu peserta didaftarkan · berputar setiap {{ users.length }} hari
+                    Urutan bisa sewaktu-waktu berubah 
                 </div>
             </div>
         </div>
