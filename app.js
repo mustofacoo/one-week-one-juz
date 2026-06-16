@@ -178,9 +178,11 @@ const countActiveDays = (fromDate, toDate) => {
     cursor.setHours(12, 0, 0, 0);
     const target = new Date(toDate);
     target.setHours(12, 0, 0, 0);
-    while (cursor < target) {
-        cursor.setDate(cursor.getDate() + 1);
+    // Mulai dari hari setelah fromDate, sampai DAN termasuk toDate
+    cursor.setDate(cursor.getDate() + 1);
+    while (cursor <= target) {
         if (cursor.getDay() !== 0) count++; // 0 = Minggu
+        cursor.setDate(cursor.getDate() + 1);
     }
     return count;
 };
@@ -190,42 +192,60 @@ const tadabburSchedule = computed(() => {
 
     const sorted = [...users.value].sort((a, b) => (a.rotationOrder ?? a.id) - (b.rotationOrder ?? b.id));
     const total = sorted.length;
-
     const base  = parseLocalDate(startDate.value);
     const today = parseLocalDate(viewDate.value);
 
-    // Berapa hari aktif sudah berlalu sejak startDate sampai hari ini
-    const activeDaysSoFar = countActiveDays(base, today);
-    // Tambah 1 jika hari ini sendiri bukan Minggu (hari ini termasuk hitungan)
-    const todayIsActive = today.getDay() !== 0;
+    // Hitung berapa hari aktif (non-Minggu) dari base s/d today (inklusif)
+    const countActive = (from, to) => {
+        let count = 0;
+        const cursor = new Date(from);
+        cursor.setHours(12, 0, 0, 0);
+        const end = new Date(to);
+        end.setHours(12, 0, 0, 0);
+        while (cursor <= end) {
+            if (cursor.getDay() !== 0) count++;
+            cursor.setDate(cursor.getDate() + 1);
+        }
+        return count;
+    };
 
     const schedule = [];
-    let activeDayIndex = todayIsActive ? activeDaysSoFar : null; // null = hari ini libur
+    let collected = 0; // jumlah hari aktif yang sudah masuk jadwal
+    let i = 0;
 
-    for (let i = 0; i < 7; i++) {
+    // Terus tambah hari sampai dapat 7 hari AKTIF (Minggu tidak dihitung)
+    while (collected < 7) {
         const targetDate = new Date(today);
         targetDate.setDate(today.getDate() + i);
+        i++;
+
         const isSunday = targetDate.getDay() === 0;
+        
+        // PERBAIKAN: Format tanggal secara lokal, hindari toISOString()
+        const year = targetDate.getFullYear();
+        const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+        const day = String(targetDate.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
 
         if (isSunday) {
-            schedule.push({
-                user: null,
-                date: targetDate.toISOString().split('T')[0],
-                isToday: i === 0,
-                isLibur: true
-            });
-        } else {
-            // Hitung index hari aktif untuk hari ini+i
-            const dayActiveDays = countActiveDays(base, targetDate);
-            const userIndex = ((dayActiveDays % total) + total) % total;
-            schedule.push({
-                user: sorted[userIndex],
-                date: targetDate.toISOString().split('T')[0],
-                isToday: i === 0,
-                isLibur: false
-            });
+            schedule.push({ user: null, date: dateStr, isToday: i === 1, isLibur: true });
+            // Minggu tidak dihitung ke collected — tapi tetap tampil sebagai libur
+            continue;
         }
+
+        // Berapa total hari aktif dari base s/d targetDate (inklusif)
+        const activeSoFar = countActive(base, targetDate);
+        const userIndex   = ((activeSoFar - 1) % total + total) % total;
+
+        schedule.push({
+            user: sorted[userIndex],
+            date: dateStr,
+            isToday: i === 1,
+            isLibur: false
+        });
+        collected++;
     }
+
     return schedule;
 });
 
